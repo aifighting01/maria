@@ -84,6 +84,10 @@
         "</div>" +
       "</div>";
     document.body.appendChild(VM);
+    // 영상 저장 억제: 플레이어·모달 영역의 우클릭 메뉴(길게 누르기 메뉴)와 끌어서 저장 막기
+    function noSave(e) { e.preventDefault(); return false; }
+    VM.addEventListener("contextmenu", noSave);
+    VM.addEventListener("dragstart", noSave);
     VM.addEventListener("click", function (e) {
       if (e.target === VM) { closeModal(); return; }
       var b = e.target.closest("[data-vm]");
@@ -161,9 +165,18 @@
     var vid = frame.querySelector("video");
     if (vid) return vid;
     frame.innerHTML = '<div class="vm-loading">영상 불러오는 중…</div>' +
-      '<video controls playsinline webkit-playsinline autoplay preload="metadata"></video>' +
+      '<video controls playsinline webkit-playsinline autoplay preload="metadata" controlslist="nodownload noremoteplayback" disablepictureinpicture draggable="false"></video>' +
       '<button type="button" class="vm-tap" hidden aria-label="영상 재생"><span class="play" aria-hidden="true"></span></button>';
     vid = frame.querySelector("video");
+    // 다운로드·PIP·원격 재생 메뉴 숨김 (속성 + 프로퍼티 둘 다)
+    vid.setAttribute("controlslist", "nodownload noremoteplayback");
+    try { if (vid.controlsList && vid.controlsList.add) { vid.controlsList.add("nodownload"); vid.controlsList.add("noremoteplayback"); } } catch (e) {}
+    vid.setAttribute("disablepictureinpicture", "");
+    try { vid.disablePictureInPicture = true; } catch (e) {}
+    vid.setAttribute("draggable", "false");
+    vid.draggable = false;
+    vid.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    vid.addEventListener("dragstart", function (e) { e.preventDefault(); });
     vid.addEventListener("loadedmetadata", function () {
       var v = cur && cur.v;
       if (v && vid.videoWidth && vid.videoHeight && (vid.videoWidth !== v.w || vid.videoHeight !== v.h)) {
@@ -253,8 +266,7 @@
     releaseVideos(frame);
     // 다른 플레이어로 바꾸지 않고 사이트 플레이어 자리에서 안내 (크기 유지)
     frame.innerHTML = '<div class="vm-fail"><p>영상을 불러오지 못했어요' + (code && code !== "stall" ? " (" + code + ")" : "") + '.</p>' +
-      '<button type="button" class="vm-retry">다시 시도</button>' +
-      '<a href="' + esc(c.v.src) + '" target="_blank" rel="noopener">영상 파일 열기 ↗</a></div>';
+      '<button type="button" class="vm-retry">다시 시도</button></div>';
     frame.querySelector(".vm-retry").addEventListener("click", function () { startVideo(c.v, true); });
     if (META_IAB) showIab(true);
   }
