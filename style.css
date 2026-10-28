@@ -240,7 +240,6 @@ html.vm-open .totop{opacity:0;visibility:hidden;pointer-events:none}
 .links{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .links a{border:1px solid var(--line);padding:11px 18px;font-size:13.5px;letter-spacing:.04em;transition:border-color .3s,background .3s}
 .links a:hover{border-color:var(--crimson);background:rgba(179,18,29,.12)}
-.links a.main{border-color:var(--crimson)}
 .copy{margin-top:34px;font-family:var(--disp);font-size:10px;letter-spacing:.35em;color:var(--ash)}
 
 /* ---------- 작품 목록으로 버튼 ---------- */
