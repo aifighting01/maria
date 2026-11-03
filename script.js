@@ -2,6 +2,50 @@
   "use strict";
   document.documentElement.classList.remove("no-js");
 
+  /* ---------- 언어 (KO / EN) ----------
+     기본 한국어. ?lang=en|ko > localStorage("maria-lang") > ko. <html lang> 과 html.lang-en 클래스로 전환.
+     본문은 .i18n-ko / .i18n-en 쌍으로 들어 있고 CSS 가 하나만 보여 줌. 속성은 data-en-<attr> 로 교체 (원래 값은 data-ko-<attr>). */
+  var HTML = document.documentElement;
+  var META = {
+    ko: { title: "MARIA — 마리아 | ai_fighting", desc: "Devil Hunter MARIA — ai_fighting 의 AI 영상 포트폴리오" },
+    en: { title: "MARIA | ai_fighting", desc: "Devil Hunter MARIA — an AI film portfolio by ai_fighting" }
+  };
+  function isEn() { return HTML.classList.contains("lang-en"); }
+  function T(ko, en) { return isEn() ? en : ko; }
+  function applyAttrs(root) {
+    var en = isEn();
+    Array.prototype.forEach.call((root || document).querySelectorAll("*"), function (el) {
+      for (var i = 0; i < el.attributes.length; i++) {
+        var n = el.attributes[i].name;
+        if (n.indexOf("data-en-") !== 0) continue;
+        var a = n.slice(8), ko = "data-ko-" + a;
+        if (!el.hasAttribute(ko)) el.setAttribute(ko, el.getAttribute(a) || "");
+        el.setAttribute(a, en ? el.getAttribute(n) : el.getAttribute(ko));
+      }
+    });
+  }
+  function setLang(l, save) {
+    l = l === "en" ? "en" : "ko";
+    HTML.classList.toggle("lang-en", l === "en");
+    HTML.setAttribute("lang", l);
+    document.title = META[l].title;
+    Array.prototype.forEach.call(document.querySelectorAll('meta[name="description"],meta[property="og:description"]'), function (m) { m.setAttribute("content", META[l].desc); });
+    var og = document.querySelector('meta[property="og:title"]'); if (og) og.setAttribute("content", META[l].title);
+    applyAttrs(document);
+    Array.prototype.forEach.call(document.querySelectorAll(".langtg [data-l]"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-l") === l ? "true" : "false"); });
+    if (save) { try { localStorage.setItem("maria-lang", l); } catch (e) {} }
+  }
+  window.__mariaLang = setLang;
+  (function () {
+    var q = (location.search.match(/[?&]lang=(en|ko)\b/) || [])[1], st = null;
+    try { st = localStorage.getItem("maria-lang"); } catch (e) {}
+    if (q) { try { localStorage.setItem("maria-lang", q); } catch (e) {} }
+    setLang(q || st || "ko", false);
+    Array.prototype.forEach.call(document.querySelectorAll(".langtg [data-l]"), function (b) {
+      b.addEventListener("click", function () { setLang(b.getAttribute("data-l"), true); });
+    });
+  })();
+
   /* 영상 원본: GitHub Pages 의 mp4 (카드의 data-src, build.py 가 채움). 재시도 시 ?r=시도_시각 */
   function vidSrc(v, attempt) {
     if (typeof window.__mariaSrc === "function") return window.__mariaSrc(v.id, attempt); // 로컬 테스트용 훅
@@ -74,16 +118,17 @@
     VM.innerHTML =
       '<div class="vm-box">' +
         '<div class="vm-head"><span class="vm-tag"></span><strong id="vm-title" class="vm-title"></strong>' +
-        '<button type="button" class="vm-close" data-vm="close" aria-label="닫기 (Esc)">✕</button></div>' +
+        '<button type="button" class="vm-close" data-vm="close" aria-label="닫기 (Esc)" data-en-aria-label="Close (Esc)">✕</button></div>' +
         '<div class="vm-stage"><div class="vm-frame"></div></div>' +
         '<div class="vm-foot">' +
-          '<div class="vm-nav"><button type="button" class="vm-btn" data-vm="prev" aria-label="이전 영상">‹ 이전</button>' +
+          '<div class="vm-nav"><button type="button" class="vm-btn" data-vm="prev" aria-label="이전 영상" data-en-aria-label="Previous video">‹ <span class="i18n-ko">이전</span><span class="i18n-en">Prev</span></button>' +
           '<span class="vm-count" aria-live="polite"></span>' +
-          '<button type="button" class="vm-btn" data-vm="next" aria-label="다음 영상">다음 ›</button></div>' +
+          '<button type="button" class="vm-btn" data-vm="next" aria-label="다음 영상" data-en-aria-label="Next video"><span class="i18n-ko">다음</span><span class="i18n-en">Next</span> ›</button></div>' +
           '<div class="vm-iab" hidden></div>' +
         "</div>" +
       "</div>";
     document.body.appendChild(VM);
+    applyAttrs(VM);
     // 영상 저장 억제: 플레이어·모달 영역의 우클릭 메뉴(길게 누르기 메뉴)와 끌어서 저장 막기
     function noSave(e) { e.preventDefault(); return false; }
     VM.addEventListener("contextmenu", noSave);
@@ -164,9 +209,9 @@
   function ensurePlayer(frame) {
     var vid = frame.querySelector("video");
     if (vid) return vid;
-    frame.innerHTML = '<div class="vm-loading">영상 불러오는 중…</div>' +
+    frame.innerHTML = '<div class="vm-loading">' + T("영상 불러오는 중…", "Loading video…") + '</div>' +
       '<video controls playsinline webkit-playsinline autoplay preload="metadata" controlslist="nodownload noremoteplayback" disablepictureinpicture draggable="false"></video>' +
-      '<button type="button" class="vm-tap" hidden aria-label="영상 재생"><span class="play" aria-hidden="true"></span></button>';
+      '<button type="button" class="vm-tap" hidden aria-label="' + T("영상 재생", "Play video") + '"><span class="play" aria-hidden="true"></span></button>';
     vid = frame.querySelector("video");
     // 다운로드·PIP·원격 재생 메뉴 숨김 (속성 + 프로퍼티 둘 다)
     vid.setAttribute("controlslist", "nodownload noremoteplayback");
@@ -202,7 +247,7 @@
     vid.setAttribute("poster", c.v.poster || "");
     vid.setAttribute("title", c.v.title);
     if (PLAN[c.step] === "native") {
-      setLoading("영상 불러오는 중…");
+      setLoading(T("영상 불러오는 중…", "Loading video…"));
       vid.src = vidSrc(c.v, c.step);
       doPlay(vid);      // 탭 처리 중에 바로 play() — 인앱 브라우저 자동재생 제한 통과
       armStall();
@@ -212,7 +257,7 @@
     clearStall();
     releaseSrc(vid);
     dropBlob();
-    setLoading("영상 내려받는 중…");
+    setLoading(T("영상 내려받는 중…", "Downloading video…"));
     if (!window.fetch || !window.URL || !URL.createObjectURL) { fail(c.code); return; }
     var ctl = window.AbortController ? new AbortController() : null;
     vmAbort = ctl;
@@ -229,7 +274,7 @@
           if (cur !== c) { try { rd.cancel(); } catch (e) {} throw new Error("cancel"); }
           if (r.done) return new Blob(parts, { type: "video/mp4" });
           parts.push(r.value); got += r.value.length; poke();
-          if (total) setLoading("영상 내려받는 중… " + Math.min(99, Math.floor(got * 100 / total)) + "%");
+          if (total) setLoading(T("영상 내려받는 중… ", "Downloading video… ") + Math.min(99, Math.floor(got * 100 / total)) + "%");
           return pump();
         });
       })();
@@ -239,7 +284,7 @@
       vmAbort = null;
       if (blob.type !== "video/mp4") blob = blob.slice(0, blob.size, "video/mp4");
       vmBlobUrl = URL.createObjectURL(blob);
-      setLoading("영상 불러오는 중…");
+      setLoading(T("영상 불러오는 중…", "Loading video…"));
       vid.src = vmBlobUrl;
       doPlay(vid);      // 같은 요소라서 처음 탭의 허락이 남아 있음. 막히면 재생 버튼 표시
       armStall();
@@ -265,8 +310,8 @@
     dropBlob();
     releaseVideos(frame);
     // 다른 플레이어로 바꾸지 않고 사이트 플레이어 자리에서 안내 (크기 유지)
-    frame.innerHTML = '<div class="vm-fail"><p>영상을 불러오지 못했어요' + (code && code !== "stall" ? " (" + code + ")" : "") + '.</p>' +
-      '<button type="button" class="vm-retry">다시 시도</button></div>';
+    frame.innerHTML = '<div class="vm-fail"><p>' + T("영상을 불러오지 못했어요", "Couldn't load the video") + (code && code !== "stall" ? " (" + code + ")" : "") + '.</p>' +
+      '<button type="button" class="vm-retry">' + T("다시 시도", "Try again") + '</button></div>';
     frame.querySelector(".vm-retry").addEventListener("click", function () { startVideo(c.v, true); });
     if (META_IAB) showIab(true);
   }
@@ -276,18 +321,19 @@
     var box = VM.querySelector(".vm-iab");
     if (!on) { box.hidden = true; return; }
     var u = pageUrl(), rest = u.replace(/^https?:\/\//, "");
-    var h = "<p>Threads·Instagram 앱 안의 브라우저에서는 영상이 재생되지 않을 수 있어요. " +
-      (IS_IOS ? "Safari" : "Chrome") + " 같은 기본 브라우저로 열어 주세요.</p><div class=\"vm-iab-row\">";
+    var h = "<p>" + T("Threads·Instagram 앱 안의 브라우저에서는 영상이 재생되지 않을 수 있어요. " + (IS_IOS ? "Safari" : "Chrome") + " 같은 기본 브라우저로 열어 주세요.",
+      "Videos may not play in the Threads/Instagram in-app browser. Please open this page in your default browser, such as " + (IS_IOS ? "Safari" : "Chrome") + ".") +
+      "</p><div class=\"vm-iab-row\">";
     if (IS_ANDROID) h += '<a class="vm-btn vm-open-ext" href="intent://' + esc(rest) + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" +
-      encodeURIComponent(u) + ';end">Chrome 으로 열기 ↗</a>';
-    h += '<button type="button" class="vm-btn vm-copy">링크 복사</button></div>';
-    if (!IS_ANDROID) h += '<p class="vm-iab-tip">링크를 복사해 Safari 에 붙여 넣거나, 오른쪽 위 ··· 메뉴에서 ‘외부 브라우저에서 열기’ 를 눌러 주세요.</p>';
+      encodeURIComponent(u) + ';end">' + T("Chrome 으로 열기 ↗", "Open in Chrome ↗") + '</a>';
+    h += '<button type="button" class="vm-btn vm-copy">' + T("링크 복사", "Copy link") + '</button></div>';
+    if (!IS_ANDROID) h += '<p class="vm-iab-tip">' + T("링크를 복사해 Safari 에 붙여 넣거나, 오른쪽 위 ··· 메뉴에서 ‘외부 브라우저에서 열기’ 를 눌러 주세요.", "Copy the link and paste it into Safari, or tap the ··· menu at the top right and choose ‘Open in external browser’.") + '</p>';
     h += '<p class="vm-iab-url">' + esc(u) + "</p>";
     box.innerHTML = h;
     box.hidden = false;
     box.querySelector(".vm-copy").addEventListener("click", function () {
       var b = this;
-      function done(okc) { b.textContent = okc ? "복사했어요 ✓" : "아래 주소를 길게 눌러 복사"; }
+      function done(okc) { b.textContent = okc ? T("복사했어요 ✓", "Copied ✓") : T("아래 주소를 길게 눌러 복사", "Long-press the address below to copy"); }
       function legacy() {
         var t = document.createElement("textarea");
         t.value = u; t.setAttribute("readonly", ""); t.style.cssText = "position:fixed;top:0;left:0;opacity:0";

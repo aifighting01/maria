@@ -306,3 +306,15 @@ html.lb-open .totop{opacity:0;visibility:hidden;pointer-events:none}
   .eyebrow{margin-bottom:12px}
 }
 @keyframes breathe2{from{transform:scale(1)}to{transform:scale(1.06)}}
+
+/* ---------- 언어 전환 (KO / EN) ---------- */
+html:not(.lang-en) .i18n-en,html.lang-en .i18n-ko{display:none!important}
+.langtg{display:inline-flex;align-items:center;border:1px solid var(--line);margin-left:2px}
+.langtg button{font:inherit;letter-spacing:.12em;color:var(--ash);background:none;border:0;padding:5px 7px;cursor:pointer;line-height:1}
+.langtg button[aria-pressed="true"]{color:var(--bone);background:rgba(179,18,29,.35)}
+.langtg button:focus-visible{outline:1px solid var(--ember)}
+html.lang-en .lore-body p,html.lang-en .lore-meaning p,html.lang-en .lore-contra p{word-break:normal;overflow-wrap:break-word}
+html.lang-en .lore-spec div{grid-template-columns:5.6em 1fr}
+html.lang-en .lore-spec.wide div{grid-template-columns:6.8em 1fr}
+@media(min-width:760px){html.lang-en .lore-spec div,html.lang-en .lore-spec.wide div{grid-template-columns:auto}}
+@media(max-width:420px){.topnav{gap:10px}.langtg button{padding:5px 6px}}
