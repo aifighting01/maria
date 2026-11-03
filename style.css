@@ -220,6 +220,18 @@ html.vm-open .totop{opacity:0;visibility:hidden;pointer-events:none}
 .lore-epi span{display:inline-block;font-family:var(--kr);font-weight:700;font-size:clamp(17px,4.8vw,25px);line-height:1.6;letter-spacing:.04em;
   color:var(--crimson);text-shadow:0 0 18px rgba(224,50,60,.45),0 2px 0 rgba(0,0,0,.6);word-break:keep-all}
 
+/* 07 형식: 추가 섹션 · 최후의 문장 · 5줄 스펙 */
+.lore-rest h4.lore-sec{margin-top:1.8em}
+.lore-final{margin-top:26px}
+.lore-final h4{justify-content:center}
+.lore-final .lore-epi{margin-top:6px}
+.lore-epi .epi-en{display:block;font-family:var(--disp);font-size:clamp(10.5px,2.8vw,13px);letter-spacing:.3em;color:var(--bone2);margin-bottom:10px}
+.lore-spec.wide div{grid-template-columns:6.4em 1fr}
+@media(min-width:760px){.lore-spec.wide{grid-template-columns:1fr 1fr}.lore-spec.wide div{grid-template-columns:auto;padding:12px 26px 12px 0;border-left:0}
+  .lore-spec.wide div:nth-child(even){padding-left:26px;border-left:1px dashed rgba(233,225,208,.12)}
+  .lore-spec.wide div:nth-child(n+3){border-top:1px dashed rgba(233,225,208,.08)}
+  .lore-spec.wide div:last-child{grid-column:1/-1;padding-left:0;border-left:0}}
+
 /* ---------- 인터루드 (MARIA2) ---------- */
 .interlude{position:relative;margin:clamp(80px,14vw,140px) 0 0;background:var(--bone);color:var(--ink);overflow:hidden;isolation:isolate}
 .interlude-in{max-width:1240px;margin:0 auto;display:grid;align-items:center;min-height:min(120vw,820px)}
