@@ -318,3 +318,63 @@ html.lang-en .lore-spec div{grid-template-columns:5.6em 1fr}
 html.lang-en .lore-spec.wide div{grid-template-columns:6.8em 1fr}
 @media(min-width:760px){html.lang-en .lore-spec div,html.lang-en .lore-spec.wide div{grid-template-columns:auto}}
 @media(max-width:420px){.topnav{gap:10px}.langtg button{padding:5px 6px}}
+
+
+/* ---------- 배경음악 토글 ---------- */
+#maria-bgm{position:absolute;width:0;height:0;opacity:0;pointer-events:none}
+.bgmtg{display:inline-flex;align-items:center;justify-content:center;width:28px;height:22px;margin-left:2px;border:1px solid var(--line);color:var(--bone2);vertical-align:middle;padding:0;line-height:0;flex:0 0 auto}
+.bgmtg svg{display:block}
+.bgmtg .bgm-off{display:none}
+.bgmtg.is-muted .bgm-on{display:none}
+.bgmtg.is-muted .bgm-off{display:inline-flex}
+.bgmtg.is-muted{color:var(--ash)}
+.bgmtg:hover,.bgmtg:focus-visible{color:var(--ember)}
+.bgmtg:focus-visible{outline:1px solid var(--ember)}
+.bgmtg.is-waiting:not(.is-muted){animation:bgmwait 1.8s ease-in-out infinite}
+@keyframes bgmwait{0%,100%{opacity:.45}50%{opacity:1}}
+@media(max-width:420px){.bgmtg{width:26px;height:22px}}
+
+.bgm-hint{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translate(-50%,20px);z-index:60;border:1px solid rgba(255,255,255,.25);background:rgba(10,10,14,.82);color:#fff;font:inherit;font-size:13px;letter-spacing:.02em;padding:9px 16px;border-radius:999px;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.bgm-hint.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+
+/* ---------- 앱으로 설치 (PWA) — 히어로 안 인라인 배치: 하단 고정 BGM 안내·EXORCISM ↑ 버튼과 겹치지 않음 ---------- */
+.hero-act{display:flex;align-items:center;flex-wrap:wrap;gap:12px 22px;margin-top:30px}
+.hero-act .cue{margin-top:0}
+.appinst{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:12px;letter-spacing:.06em;color:var(--bone2);background:rgba(7,5,6,.45);border:1px solid var(--line);padding:7px 12px 7px 10px;cursor:pointer;line-height:1;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);transition:color .2s,border-color .2s,background .2s}
+.appinst[hidden]{display:none}
+.appinst svg{color:var(--ember);flex:0 0 auto}
+.appinst:hover,.appinst:focus-visible,.appinst[aria-expanded="true"]{color:var(--bone);border-color:rgba(224,50,60,.55);background:rgba(142,15,23,.28);outline:none}
+.appinst-help{margin-top:12px;max-width:420px;font-size:12.5px;line-height:1.65;color:var(--bone2);border-left:1px solid var(--crimson);padding:8px 12px;background:rgba(7,5,6,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.appinst-help[hidden]{display:none}
+.appinst-help p{margin:0;word-break:keep-all}
+.appinst-help b{color:var(--bone);font-weight:700}
+.appinst-help svg{display:inline-block;vertical-align:-2px;color:var(--bone)}
+.appinst-help .ah-ios,.appinst-help .ah-and,.appinst-help .ah-iab{display:none}
+.appinst-help[data-mode="ios"] .ah-ios,.appinst-help[data-mode="android"] .ah-and,.appinst-help[data-mode="iab"] .ah-iab{display:block}
+html.is-app .appinst,html.is-app .appinst-help{display:none!important}
+
+/* ---------- 설화 웹툰 ---------- */
+.wt{margin:26px var(--pad) 0;text-align:center}
+.wt-btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:52px;width:100%;max-width:420px;padding:12px 22px;
+  border:1px solid var(--crimson);background:linear-gradient(180deg,rgba(179,18,29,.22),rgba(142,15,23,.10));color:var(--bone);
+  font-family:var(--kr);font-size:15px;font-weight:700;letter-spacing:.14em;box-shadow:0 0 0 1px rgba(224,50,60,.12),0 8px 28px rgba(142,15,23,.28);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;transition:background .3s,box-shadow .3s,border-color .3s}
+.wt-btn:hover,.wt-btn:focus-visible{background:rgba(179,18,29,.34);border-color:var(--ember);outline:none}
+.wt-btn:active{transform:translateY(1px)}
+.wt-k{font-family:var(--disp);font-size:9.5px;font-weight:400;letter-spacing:.32em;color:var(--ember);padding:3px 7px;border:1px solid rgba(224,50,60,.55)}
+.wt-btn i{width:8px;height:8px;border-right:1.5px solid var(--ember);border-bottom:1.5px solid var(--ember);transform:rotate(45deg) translate(-2px,-2px);transition:transform .3s}
+.wt.open .wt-btn i{transform:rotate(-135deg) translate(-2px,-2px)}
+.wt-btn .c,.wt.open .wt-btn .o{display:none}
+.wt.open .wt-btn .c{display:inline}
+.wt-panel{position:relative;max-width:900px;margin:18px auto 0;background:#000;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.wt-panel[hidden]{display:none}
+.wt-strip{display:flex;flex-direction:column;line-height:0;font-size:0}
+.wt-strip img{display:block;width:100%;height:auto;margin:0;border:0;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.wt-shield{position:absolute;left:0;right:0;top:0;bottom:0;z-index:1;background:transparent;-webkit-touch-callout:none}
+.wt-end{position:relative;z-index:2;padding:18px 0 22px;background:var(--ink);text-align:center}
+.wt-close{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border:1px solid var(--line);font-size:13px;letter-spacing:.2em;color:var(--bone2);transition:color .3s,border-color .3s}
+.wt-close:hover,.wt-close:focus-visible{color:var(--bone);border-color:var(--crimson);outline:none}
+@media(max-width:600px){.wt{margin-left:0;margin-right:0;padding:0 var(--pad)}.wt-panel{margin-left:calc(-1 * var(--pad));margin-right:calc(-1 * var(--pad))}}
+.wt-l{white-space:nowrap}
+html.lang-en .wt-btn{letter-spacing:.06em;gap:10px}
+@media(max-width:360px){.wt-btn{gap:8px;padding:12px 14px;font-size:14px}.wt-k{display:none}}

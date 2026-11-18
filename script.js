@@ -33,6 +33,8 @@
     var og = document.querySelector('meta[property="og:title"]'); if (og) og.setAttribute("content", META[l].title);
     applyAttrs(document);
     Array.prototype.forEach.call(document.querySelectorAll(".langtg [data-l]"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-l") === l ? "true" : "false"); });
+    if (typeof paintBgmBtn === "function") paintBgmBtn();
+    try { document.dispatchEvent(new CustomEvent("maria:lang", { detail: l })); } catch (e) {}
     if (save) { try { localStorage.setItem("maria-lang", l); } catch (e) {} }
   }
   window.__mariaLang = setLang;
@@ -45,6 +47,127 @@
       b.addEventListener("click", function () { setLang(b.getAttribute("data-l"), true); });
     });
   })();
+
+
+  /* ---------- 배경음악 ----------
+     홈·작품 페이지에서 루프. 자동재생이 막히면 첫 탭·클릭·스크롤에서 시작.
+     아무 <video> 가 재생되면 멈춤. 영상이 끝나거나 플레이어를 닫고 홈으로 돌아오면
+     (음소거가 아닐 때) 다시 재생. 플레이어가 열린 채 일시정지된 영상은 BGM 을 계속 멈춤.
+     음소거 상태는 localStorage("maria-bgm-muted"). */
+  var BGM_SRC = "https://aifighting01.github.io/maria/audio/bgm.mp3";
+  var BGM_KEY = "maria-bgm-muted";
+  var bgm = document.getElementById("maria-bgm");
+  var bgmBtn = document.querySelector(".bgmtg");
+  var bgmMuted = false;
+  try { bgmMuted = localStorage.getItem(BGM_KEY) === "1"; } catch (e) {}
+  if (bgm) {
+    if (bgm.getAttribute("src") !== BGM_SRC) bgm.setAttribute("src", BGM_SRC);
+    bgm.loop = true;
+    try { bgm.volume = 0.55; } catch (e) {}
+    bgm.setAttribute("playsinline", "");
+    bgm.setAttribute("webkit-playsinline", "");
+    try { if (bgm.controlsList && bgm.controlsList.add) bgm.controlsList.add("nodownload"); } catch (e) {}
+  }
+  function bgmHeldByVideo() {
+    if (document.documentElement.classList.contains("vm-open") && VM && !VM.hidden) {
+      var vid = VM.querySelector("video");
+      if (vid && vid.ended) return false;
+      return true;
+    }
+    var vs = document.querySelectorAll("video");
+    for (var i = 0; i < vs.length; i++) {
+      if (!vs[i].paused && !vs[i].ended) return true;
+    }
+    return false;
+  }
+  function pauseBgm() {
+    if (bgm && !bgm.paused) try { bgm.pause(); } catch (e) {}
+  }
+  function tryPlayBgm() {
+    if (!bgm || bgmMuted || bgmHeldByVideo()) { pauseBgm(); paintBgmBtn(); return; }
+    var p;
+    try { p = bgm.play(); } catch (e) { paintBgmBtn(); return; }
+    if (p && p.then) {
+      p.then(function () { paintBgmBtn(); }).catch(function () { paintBgmBtn(); });
+    } else paintBgmBtn();
+  }
+  function paintBgmBtn() {
+    if (!bgmBtn) { if (typeof paintHint === "function" && bgmHint) paintHint(); return; }
+    var waiting = !bgmMuted && (!bgm || bgm.paused) && !bgmHeldByVideo();
+    bgmBtn.classList.toggle("is-muted", !!bgmMuted);
+    bgmBtn.classList.toggle("is-waiting", !!waiting);
+    bgmBtn.setAttribute("aria-pressed", bgmMuted ? "true" : "false");
+    bgmBtn.setAttribute("data-ko-aria-label", bgmMuted ? "배경음악 켜기" : "배경음악 끄기");
+    bgmBtn.setAttribute("data-en-aria-label", bgmMuted ? "Unmute background music" : "Mute background music");
+    bgmBtn.setAttribute("aria-label", T(bgmBtn.getAttribute("data-ko-aria-label"), bgmBtn.getAttribute("data-en-aria-label")));
+    if (typeof paintHint === "function" && bgmHint) paintHint();
+  }
+  function isVideoGesture(e) {
+    var t = e.target;
+    if (!t || !t.closest) return false;
+    return !!(t.closest(".vcard") || t.closest(".vmodal") || (t.tagName && t.tagName.toLowerCase() === "video"));
+  }
+  function onFirstGesture(e) {
+    if (bgmMuted) return;
+    if (isVideoGesture(e)) return;
+    var t = e.target;
+    if (t && t.closest && (t.closest(".bgmtg") || t.closest(".bgm-hint"))) return;
+    tryPlayBgm();
+  }
+  /* 브라우저는 스크롤로는 소리 재생을 허락하지 않음: 탭/클릭/키 입력에서만 시작 가능 */
+  ["pointerup", "touchend", "click", "keydown", "mousedown"].forEach(function (ev) {
+    window.addEventListener(ev, onFirstGesture, { passive: true, capture: true });
+  });
+  var bgmHint = document.createElement("button");
+  bgmHint.type = "button";
+  bgmHint.className = "bgm-hint";
+  bgmHint.setAttribute("data-ko", "♪ 탭하면 음악이 재생돼요");
+  bgmHint.setAttribute("data-en", "♪ Tap to play music");
+  function paintHint() {
+    var show = !bgmMuted && bgm && bgm.paused && !bgmHeldByVideo();
+    bgmHint.textContent = T(bgmHint.getAttribute("data-ko"), bgmHint.getAttribute("data-en"));
+    bgmHint.classList.toggle("show", !!show);
+  }
+  document.body.appendChild(bgmHint);
+  bgmHint.addEventListener("click", function (e) { e.stopPropagation(); tryPlayBgm(); });
+  if (bgm) { ["play", "pause"].forEach(function (ev) { bgm.addEventListener(ev, function () { paintBgmBtn(); }); }); }
+  if (bgmBtn) {
+    bgmBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      /* 아직 재생 전(대기 중)이면 버튼 탭 = 재생 시작, 음소거로 바꾸지 않음 */
+      if (!bgmMuted && bgm && bgm.paused && !bgmHeldByVideo()) { tryPlayBgm(); return; }
+      bgmMuted = !bgmMuted;
+      try { localStorage.setItem(BGM_KEY, bgmMuted ? "1" : "0"); } catch (e) {}
+      paintBgmBtn();
+      if (bgmMuted) pauseBgm();
+      else tryPlayBgm();
+    });
+  }
+  document.addEventListener("play", function (e) {
+    var el = e.target;
+    if (!el || !el.tagName || el.tagName.toLowerCase() !== "video") return;
+    pauseBgm();
+    paintBgmBtn();
+  }, true);
+  document.addEventListener("pause", function (e) {
+    var el = e.target;
+    if (!el || !el.tagName || el.tagName.toLowerCase() !== "video") return;
+    tryPlayBgm();
+  }, true);
+  document.addEventListener("ended", function (e) {
+    var el = e.target;
+    if (!el || !el.tagName || el.tagName.toLowerCase() !== "video") return;
+    tryPlayBgm();
+  }, true);
+  paintBgmBtn();
+  tryPlayBgm();
+  window.__mariaBgm = {
+    audio: function () { return bgm; },
+    muted: function () { return !!bgmMuted },
+    sync: tryPlayBgm,
+    pause: pauseBgm,
+    held: bgmHeldByVideo
+  };
 
   /* 영상 원본: GitHub Pages 의 mp4 (카드의 data-src, build.py 가 채움). 재시도 시 ?r=시도_시각 */
   function vidSrc(v, attempt) {
@@ -395,6 +518,7 @@
     document.documentElement.classList.remove("vm-open");
     vmList = null;
     if (vmLastFocus && vmLastFocus.focus) try { vmLastFocus.focus({ preventScroll: true }); } catch (e) {}
+    if (typeof tryPlayBgm === "function") tryPlayBgm();
   }
   document.addEventListener("keydown", function (e) {
     if (!VM || VM.hidden) return;
@@ -422,6 +546,59 @@
   });
   window.__mariaVideo = { open: function (i) { openModal(document.querySelectorAll(".vcard")[i]); }, close: closeModal,
     state: function () { return cur ? { step: cur.step, kind: PLAN[cur.step], ok: cur.ok, code: cur.code } : null; }, plan: PLAN, metaIab: META_IAB };  // 테스트·진단용
+
+  /* ---------- 설화 웹툰 ----------
+     build.py 의 WEBTOONS 가 .wt 블록을 만든다 (data-wt-ko / data-wt-en = 조각 [가로,세로] 목록, data-wt-base = GitHub Pages 주소).
+     처음 펼칠 때만 이미지를 불러옴. 언어를 바꾸면 펼쳐진 웹툰은 즉시 교체, 접힌 웹툰은 다음에 펼칠 때 새 언어로. */
+  (function () {
+    function noSave(e) { e.preventDefault(); return false; }
+    function langOf() { return isEn() ? "en" : "ko"; }
+    function render(box) {
+      var l = langOf(), strip = box.querySelector(".wt-strip");
+      if (box.getAttribute("data-wt-loaded") === l) return;
+      var sizes = []; try { sizes = JSON.parse(box.getAttribute("data-wt-" + l) || "[]"); } catch (e) {}
+      var base = box.getAttribute("data-wt-base"), no = box.getAttribute("data-wt"), rev = box.getAttribute("data-wt-rev");
+      var frag = document.createDocumentFragment();
+      sizes.forEach(function (wh, i) {
+        var im = document.createElement("img");
+        im.decoding = "async";
+        im.width = wh[0]; im.height = wh[1];
+        im.alt = i === 0 ? T("MARIA No. " + no + " 설화 웹툰", "MARIA No. " + no + " lore webtoon") : "";
+        im.setAttribute("draggable", "false"); im.draggable = false;
+        im.addEventListener("contextmenu", noSave); im.addEventListener("dragstart", noSave);
+        im.src = base + l + "/" + (i < 9 ? "0" : "") + (i + 1) + ".webp" + (rev ? "?r=" + encodeURIComponent(rev) : "");
+        frag.appendChild(im);
+      });
+      strip.innerHTML = "";
+      strip.appendChild(frag);
+      box.setAttribute("data-wt-loaded", l);
+    }
+    function setOpen(box, on) {
+      var btn = box.querySelector(".wt-btn"), panel = box.querySelector(".wt-panel");
+      if (on) render(box);
+      panel.hidden = !on;
+      box.classList.toggle("open", on);
+      btn.setAttribute("aria-expanded", on ? "true" : "false");
+    }
+    var boxes = document.querySelectorAll(".wt[data-wt]");
+    Array.prototype.forEach.call(boxes, function (box) {
+      var btn = box.querySelector(".wt-btn"), panel = box.querySelector(".wt-panel");
+      ["contextmenu", "dragstart", "selectstart"].forEach(function (ev) { panel.addEventListener(ev, function (e) { if (!(e.target.closest && e.target.closest(".wt-close"))) e.preventDefault(); }); });
+      btn.addEventListener("click", function () { setOpen(box, panel.hidden); });
+      box.querySelector(".wt-close").addEventListener("click", function () {
+        setOpen(box, false);
+        try { btn.scrollIntoView({ block: "center" }); } catch (e) { btn.scrollIntoView(); }
+        try { btn.focus({ preventScroll: true }); } catch (e) {}
+      });
+    });
+    document.addEventListener("maria:lang", function () {
+      Array.prototype.forEach.call(boxes, function (box) {
+        if (!box.querySelector(".wt-panel").hidden) render(box);
+        else if (box.getAttribute("data-wt-loaded")) { box.querySelector(".wt-strip").innerHTML = ""; box.removeAttribute("data-wt-loaded"); }
+      });
+    });
+    window.__mariaWebtoon = { open: function (n) { var b = document.getElementById("wt-" + n); if (b) setOpen(b, true); }, close: function (n) { var b = document.getElementById("wt-" + n); if (b) setOpen(b, false); } };  // 테스트용
+  })();
 
   /* ---------- 라이트박스 ---------- */
   var lb = document.querySelector(".lb"), lbImg = lb.querySelector("img"), lbCount = lb.querySelector(".lb-count");
@@ -473,4 +650,61 @@
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) show(idx + (dx < 0 ? 1 : -1));
     else if (dy > 90 && Math.abs(dy) > Math.abs(dx)) close();
   }, { passive: true });
+  /* ---------- 앱으로 설치 (PWA) ----------
+     - 이미 홈 화면 앱(standalone)으로 실행 중이면 버튼 숨김
+     - 안드로이드/크롬: beforeinstallprompt 로 설치 창. 이벤트가 없으면 브라우저 메뉴 안내
+     - iOS: 공유 버튼 → 홈 화면에 추가 안내 / 인앱 브라우저: Safari·Chrome 으로 열기 안내
+     - 서비스워커(sw.js)는 같은 경로에 실제로 있을 때만 등록, 없으면 조용히 무시 */
+  (function () {
+    var btn = document.querySelector(".appinst"), help = document.getElementById("appinst-help");
+    var ua = navigator.userAgent || "";
+    var standalone = false;
+    try { standalone = window.matchMedia("(display-mode: standalone)").matches || window.matchMedia("(display-mode: fullscreen)").matches || window.navigator.standalone === true; } catch (e) {}
+    var ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    var android = /Android/i.test(ua);
+    var iab = /Instagram|FBAN|FBAV|FB_IAB|Barcelona|Threads|KAKAOTALK|NAVER\(inapp|Line\/|DaumApps|everytimeApp|; wv\)/i.test(ua);
+    var deferred = null;
+    var state = { standalone: standalone, ios: ios, android: android, iab: iab, shown: false, prompted: false, sw: "skip" };
+    window.__mariaPWA = state;
+    if (standalone) HTML.classList.add("is-app");
+    function show(on) { if (!btn) return; btn.hidden = !on; state.shown = !!on; if (!on && help) { help.hidden = true; btn.setAttribute("aria-expanded", "false"); } }
+    function openHelp(mode) {
+      if (!help) return;
+      var open = help.hidden || help.getAttribute("data-mode") !== mode;
+      help.setAttribute("data-mode", mode);
+      help.hidden = !open;
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    if (btn && !standalone) {
+      if (iab || ios || android) show(true);   /* 데스크톱 크롬 등은 beforeinstallprompt 가 올 때만 표시 */
+      window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault(); deferred = e; state.bip = true; show(true);
+      });
+      window.addEventListener("appinstalled", function () { deferred = null; state.installed = true; show(false); });
+      btn.addEventListener("click", function () {
+        if (deferred) {
+          var d = deferred; deferred = null; state.prompted = true;
+          try {
+            d.prompt();
+            if (d.userChoice && d.userChoice.then) d.userChoice.then(function (r) { if (r && r.outcome === "accepted") show(false); }, function () {});
+          } catch (e) { openHelp(ios ? "ios" : "android"); }
+          return;
+        }
+        openHelp(iab ? "iab" : ios ? "ios" : "android");
+      });
+    }
+    /* 서비스워커: freehtmlhost 가 sw.js 를 서빙할 때만 (JS 로 응답할 때만) 등록 */
+    if ("serviceWorker" in navigator && window.isSecureContext && window.fetch) {
+      window.addEventListener("load", function () {
+        fetch("sw.js", { method: "GET", cache: "no-store", credentials: "same-origin" }).then(function (r) {
+          var ct = (r.headers.get("content-type") || "").toLowerCase();
+          if (!r.ok || ct.indexOf("javascript") < 0) { state.sw = "absent"; return; }
+          return r.text().then(function (t) {
+            if (t.indexOf("MARIA-SW") < 0) { state.sw = "absent"; return; }
+            return navigator.serviceWorker.register("sw.js", { scope: "./" }).then(function () { state.sw = "registered"; });
+          });
+        }).catch(function () { state.sw = "failed"; });
+      });
+    }
+  })();
 })();
